@@ -4,7 +4,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from cleantrace import parser, runner, verifier
+from cleantrace import output, parser, runner, verifier
 
 RESULTS_DIR = Path("results")
 
@@ -26,6 +26,12 @@ def parse_args() -> argparse.Namespace:
     )
     arg_parser.add_argument(
         "--skip-maigret", action="store_true", help="Skip Maigret."
+    )
+    arg_parser.add_argument(
+        "--format",
+        choices=["txt", "csv", "json", "report"],
+        default="txt",
+        help="Output format (default: txt).",
     )
     return arg_parser.parse_args()
 
@@ -71,18 +77,19 @@ def main() -> None:
     verified_urls = verifier.verify_urls(unique_urls, args.timeout)
 
     RESULTS_DIR.mkdir(exist_ok=True)
-    output_path = RESULTS_DIR / f"{username}_clean.txt"
+    output_path = output.write_results(
+        RESULTS_DIR,
+        username,
+        sources,
+        unique_urls,
+        verified_urls,
+        args.format,
+    )
 
     header = (
         f"--- TraceClean results for: {username} ---\n"
         f"Found by: {' + '.join(sources)} | Verified: {len(verified_urls)} / {len(unique_urls)}\n"
     )
-
-    with output_path.open("w", encoding="utf-8") as f:
-        f.write(header)
-        for url in verified_urls:
-            f.write(url + "\n")
-
     print()
     print(header.strip())
     for url in verified_urls:

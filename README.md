@@ -32,10 +32,17 @@ uv run cleantrace <username>
 | `--timeout SECONDS` | Timeout per HTTP verification request (default: 10) |
 | `--skip-sherlock` | Skip Sherlock, use Maigret only |
 | `--skip-maigret` | Skip Maigret, use Sherlock only |
+| `--format {txt,csv,json,report}` | Output format (default: `txt`) |
 
 ## Output
 
-Results are written to `results/{username}_clean.txt`:
+Results are written to `results/{username}_clean.{ext}`, where `{ext}` depends
+on `--format`:
+
+- `txt` — plain list of verified URLs (original format)
+- `csv` — `url,verified` for every found URL, including unverified ones
+- `json` — structured result with metadata (sources, counts, timestamp)
+- `report` — readable Markdown summary with verified and unverified sections
 
 ```
 --- TraceClean results for: username ---

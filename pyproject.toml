@@ -1,0 +1,28 @@
+[project]
+name = "cleantrace"
+version = "0.1.0"
+description = "Combines Sherlock + Maigret results and verifies each URL with a live HTTP request."
+readme = "README.md"
+authors = [
+    { name = "Greta", email = "268416771+Greta-Traces@users.noreply.github.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "requests>=2.34.2",
+]
+
+[project.scripts]
+cleantrace = "cleantrace.main:main"
+
+[tool.ruff]
+line-length = 100
+
+[build-system]
+requires = ["uv_build>=0.11.19,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "ruff>=0.15.18",
+]

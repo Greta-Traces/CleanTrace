@@ -119,6 +119,16 @@ def _gather_details(
     """Runs FetchTrace, WaybackTrace and EXIFTrace for every verified URL."""
     details: dict[str, dict] = {}
 
+    wayback_reachable = True
+    if enabled["wayback"]:
+        wayback_reachable = wayback.is_reachable(timeout)
+        if not wayback_reachable:
+            print(
+                "[!] Could not reach the Wayback Machine (web.archive.org) - "
+                "skipping WaybackTrace for all URLs.",
+                file=sys.stderr,
+            )
+
     for url in verified_urls:
         info: dict = {}
         html = None
@@ -129,7 +139,7 @@ def _gather_details(
             info["title"] = title
             info["description"] = description
 
-        if enabled["wayback"]:
+        if enabled["wayback"] and wayback_reachable:
             print(f"[*] Checking Wayback Machine for {url}...")
             info["wayback"] = wayback.get_snapshots(url, timeout)
 

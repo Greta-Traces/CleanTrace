@@ -35,3 +35,13 @@ def test_get_snapshots_http_error() -> None:
 def test_get_snapshots_request_exception() -> None:
     with patch("cleantrace.wayback.requests.get", side_effect=requests.RequestException):
         assert wayback.get_snapshots("https://example.com/someone", 10) is None
+
+
+def test_is_reachable_true_on_any_response() -> None:
+    with patch("cleantrace.wayback.requests.get", return_value=Mock(status_code=400)):
+        assert wayback.is_reachable(10) is True
+
+
+def test_is_reachable_false_on_connection_failure() -> None:
+    with patch("cleantrace.wayback.requests.get", side_effect=requests.ConnectTimeout):
+        assert wayback.is_reachable(10) is False

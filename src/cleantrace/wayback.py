@@ -7,15 +7,31 @@ from datetime import datetime
 
 import requests
 
+from cleantrace.verifier import USER_AGENT
+
 CDX_ENDPOINT = "https://web.archive.org/cdx/search/cdx"
+
+
+def is_reachable(timeout: int) -> bool:
+    """Quick check whether the Wayback Machine can be reached at all.
+
+    Any HTTP response (even an error status) means the network path works; only a
+    connection failure or timeout means it's unreachable.
+    """
+    try:
+        requests.get(CDX_ENDPOINT, headers={"User-Agent": USER_AGENT}, timeout=timeout)
+        return True
+    except requests.RequestException:
+        return False
 
 
 def get_snapshots(url: str, timeout: int) -> dict | None:
     """Returns {'oldest': date, 'newest': date, 'count': int}, or None if no snapshots exist
     or the request failed."""
     params = {"url": url, "output": "json", "fl": "timestamp"}
+    headers = {"User-Agent": USER_AGENT}
     try:
-        response = requests.get(CDX_ENDPOINT, params=params, timeout=timeout)
+        response = requests.get(CDX_ENDPOINT, params=params, headers=headers, timeout=timeout)
         if response.status_code != 200:
             return None
         rows = response.json()

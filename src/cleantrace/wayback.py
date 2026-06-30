@@ -21,13 +21,15 @@ def is_reachable(timeout: int) -> bool:
     try:
         requests.get(CDX_ENDPOINT, headers={"User-Agent": USER_AGENT}, timeout=timeout)
         return True
+    except requests.Timeout:
+        return False
     except requests.RequestException:
         return False
 
 
 def get_snapshots(url: str, timeout: int) -> dict | None:
     """Returns {'oldest': date, 'newest': date, 'count': int}, or None if no snapshots exist
-    or the request failed."""
+    or the request failed.  A [TIMEOUT] message is printed if the request times out."""
     params = {"url": url, "output": "json", "fl": "timestamp"}
     headers = {"User-Agent": USER_AGENT}
     try:
@@ -35,6 +37,9 @@ def get_snapshots(url: str, timeout: int) -> dict | None:
         if response.status_code != 200:
             return None
         rows = response.json()
+    except requests.Timeout:
+        print(f"  [TIMEOUT] {url} (Wayback) → skipped after {timeout}s")
+        return None
     except (requests.RequestException, ValueError):
         return None
 

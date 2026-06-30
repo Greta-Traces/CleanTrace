@@ -17,9 +17,7 @@ class ToolRunError(Exception):
 
 def _require_binary(binary: str) -> None:
     if shutil.which(binary) is None:
-        raise ToolNotFoundError(
-            f"'{binary}' was not found in PATH. Is it installed?"
-        )
+        raise ToolNotFoundError(f"'{binary}' was not found in PATH. Is it installed?")
 
 
 def run_sherlock(username: str, timeout: int) -> Path:

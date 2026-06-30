@@ -14,6 +14,7 @@ import requests
 from bs4 import BeautifulSoup
 from PIL import ExifTags, Image
 
+from cleantrace import delay as _delay
 from cleantrace.verifier import USER_AGENT
 
 
@@ -33,12 +34,24 @@ def find_images(html: str, base_url: str) -> list[str]:
     return urls
 
 
-def process_page_images(page_url: str, html: str, images_dir: Path, timeout: int) -> list[dict]:
-    """Downloads every image on the page and applies the EXIF layers to each."""
-    return [
-        _process_image(page_url, image_url, images_dir, timeout)
-        for image_url in find_images(html, page_url)
-    ]
+def process_page_images(
+    page_url: str,
+    html: str,
+    images_dir: Path,
+    timeout: int,
+    delay: float = 0.0,
+    randomize: bool = False,
+) -> list[dict]:
+    """Downloads every image on the page and applies the EXIF layers to each.
+
+    A configurable delay is inserted before each image download to avoid
+    hammering the server with rapid sequential requests.
+    """
+    results = []
+    for image_url in find_images(html, page_url):
+        _delay.apply(delay, randomize)
+        results.append(_process_image(page_url, image_url, images_dir, timeout))
+    return results
 
 
 def _process_image(page_url: str, image_url: str, images_dir: Path, timeout: int) -> dict:
@@ -47,6 +60,9 @@ def _process_image(page_url: str, image_url: str, images_dir: Path, timeout: int
     try:
         try:
             response = requests.get(image_url, headers=headers, timeout=timeout)
+        except requests.Timeout:
+            print(f"    [TIMEOUT] {image_url} → skipped after {timeout}s")
+            return {"url": image_url, "status": "error"}
         except requests.RequestException:
             return {"url": image_url, "status": "error"}
 

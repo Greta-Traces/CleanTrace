@@ -12,7 +12,7 @@ Optionally extends the pipeline with three more modules per verified URL:
   the oldest and newest snapshot
 - **EXIFTrace** (`--exif`) — finds images on the page and extracts EXIF
   metadata. Images with EXIF data are saved to
-  `results/{username}_images/`; images without EXIF are discarded
+  `{output-dir}/{username}_images/`; images without EXIF are discarded
   immediately and only logged for manual review.
 
 ## Requirements
@@ -32,25 +32,61 @@ uv sync
 ## Usage
 
 ```bash
-uv run cleantrace <username>
+uv run cleantrace <username> [options]
+```
+
+### Full example — all flags
+
+```bash
+uv run cleantrace janedoe \
+  --fetch \
+  --wayback \
+  --exif \
+  --format markdown \
+  --delay 1.5 \
+  --delay-random \
+  --timeout 10 \
+  --output-dir ~/results \
+  --resume
 ```
 
 ### Options
 
+**Network**
+
+| Flag | Default | Description |
+|---|---|---|
+| `--timeout INT` | `10` | Seconds to wait per HTTP request before giving up. Timed-out URLs are logged as `[TIMEOUT]` and skipped. |
+| `--delay FLOAT` | `1.0` | Pause in seconds between every outbound request. Reduces the chance of rate-limiting or IP bans. |
+| `--delay-random` | off | Randomise the delay between 0.5× and 1.5× the `--delay` value. Breaks up predictable request patterns. |
+
+**Sources**
+
 | Flag | Description |
 |---|---|
-| `--timeout SECONDS` | Timeout per HTTP request (default: 10) |
 | `--skip-sherlock` | Skip Sherlock, use Maigret only |
 | `--skip-maigret` | Skip Maigret, use Sherlock only |
-| `--fetch` | Enable FetchTrace (page title + meta description) |
-| `--wayback` | Enable WaybackTrace (oldest/newest Wayback snapshot) |
-| `--exif` | Enable EXIFTrace (image discovery + EXIF extraction) |
-| `--format {txt,csv,json,markdown,report}` | Output format (default: `txt`) |
+
+**Enrichment** (applied to verified URLs only)
+
+| Flag | Description |
+|---|---|
+| `--fetch` | FetchTrace — retrieve each page's `<title>` and meta description |
+| `--wayback` | WaybackTrace — look up the oldest/newest Wayback Machine snapshot and snapshot count |
+| `--exif` | EXIFTrace — download images and extract embedded EXIF metadata (GPS, device, date) |
+
+**Output**
+
+| Flag | Default | Description |
+|---|---|---|
+| `--format` | `txt` | Output format: `txt`, `csv`, `json`, `markdown`, `report` |
+| `--output-dir DIR` | `results/` | Directory where the report, images, and cache are written. Created automatically if it does not exist. |
+| `--resume` | off | Resume an interrupted run. Progress is saved to `{output-dir}/{username}_cache.json` after each URL. Already-processed URLs are skipped on restart. The cache is deleted after a successful complete run. |
 
 ## Output
 
 Every run writes one structured document to
-`results/{username}_{timestamp}.{ext}`, where `{ext}` depends on `--format`:
+`{output-dir}/{username}_{timestamp}.{ext}`, where `{ext}` depends on `--format`:
 
 - `txt` / `markdown` — full structured report: verified profiles with their
   fetched title/description, Wayback snapshot range, and EXIF findings per
@@ -88,11 +124,23 @@ Images without EXIF (logged, not saved): 1
 ```
 
 EXIFTrace images with EXIF data are saved under
-`results/{username}_images/`; images without EXIF are deleted immediately
-and never written to disk.
+`{output-dir}/{username}_images/`; images without EXIF are deleted
+immediately and never written to disk.
 
-## Tests
+## Robustness
 
-```bash
-uv run pytest
-```
+- **Rate limiting** — `--delay` and `--delay-random` insert a configurable
+  pause between every outbound request so the scanner does not hammer targets
+  with rapid-fire requests.
+- **Timeout handling** — every request (verify, fetch, Wayback, image
+  download) is individually wrapped with a timeout. A slow site prints
+  `[TIMEOUT] https://... → skipped after Xs` and the run continues normally.
+- **Resume** — `--resume` saves progress after each URL. If the run is
+  interrupted (Ctrl+C, network drop, power loss), restart with the same
+  command and `--resume` to pick up exactly where it stopped.
+
+## Notes for Kali / VPN users
+
+The Wayback Machine (`archive.org`) blocks some VPN exit nodes. If
+WaybackTrace returns no results for any URL, try switching your exit node
+before assuming a code bug.

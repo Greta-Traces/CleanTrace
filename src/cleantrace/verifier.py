@@ -9,19 +9,23 @@ USER_AGENT = (
 
 
 def verify_url(url: str, timeout: int) -> bool:
-    """Returns True if the URL responds with HTTP 200."""
+    """Returns True if the URL responds with HTTP 200.
+
+    Tries HEAD first (faster); falls back to GET for sites that block HEAD
+    with 405 or 403.  A [TIMEOUT] message is printed and False returned if
+    the request exceeds `timeout` seconds.
+    """
     headers = {"User-Agent": USER_AGENT}
     try:
-        response = requests.head(
-            url, headers=headers, timeout=timeout, allow_redirects=True
-        )
+        response = requests.head(url, headers=headers, timeout=timeout, allow_redirects=True)
         if response.status_code == 200:
             return True
         if response.status_code in (405, 403):
-            response = requests.get(
-                url, headers=headers, timeout=timeout, allow_redirects=True
-            )
+            response = requests.get(url, headers=headers, timeout=timeout, allow_redirects=True)
             return response.status_code == 200
+        return False
+    except requests.Timeout:
+        print(f"  [TIMEOUT] {url} → skipped after {timeout}s")
         return False
     except requests.RequestException:
         return False
